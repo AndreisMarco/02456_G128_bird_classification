@@ -9,7 +9,7 @@ from datetime import datetime
 from sklearn.utils.class_weight import compute_class_weight
 import torch
 from datasets import Dataset, concatenate_datasets
-from transformers import Wav2Vec2ForSequenceClassification, Wav2Vec2FeatureExtractor, TrainingArguments, Trainer
+from transformers import AutoModelForAudioClassification, AutoFeatureExtractor, TrainingArguments, Trainer
 import evaluate
 
 #####################################################################################################################################################
@@ -124,8 +124,8 @@ def main(data_dir, model_name, output_dir):
     log_message(f"Number of classes in the dataset: {num_classes}")
 
     # Load model and feature extractor from the hugging face hub
-    model = Wav2Vec2ForSequenceClassification.from_pretrained(model_name, num_labels=num_classes)
-    feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained(model_name)
+    model = AutoModelForAudioClassification.from_pretrained(model_name, num_labels=num_classes)
+    feature_extractor = AutoFeatureExtractor.from_pretrained(model_name)
     
     # Preprocess all the examples with the feature extractor
     def preprocess_function(example):

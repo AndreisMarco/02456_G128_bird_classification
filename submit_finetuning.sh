@@ -1,6 +1,6 @@
 #!/bin/bash
 # set job name
-#BSUB -J Wav2Vec2BirdsTraining
+#BSUB -J Wav2Vec2BirdsFinetuning
 # set qeue to submit to
 #BSUB -q gpuv100
 # set number of nodes       

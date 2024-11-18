@@ -40,13 +40,13 @@ def extract_features(model, processor, dataset, output_dir, num_layers=13, num_f
         #optional saving after 100 steps
         # depending on the size of your dataset this process can time out so better save intermediate results
         if i>0 and i%100 == 0:
-            np.save(os.path.join(output_dir, f"/data/hidden_states.npy"), hidden_states.cpu().numpy())
+            np.save(os.path.join(output_dir, f"data/hidden_states.npy"), hidden_states.cpu().numpy())
 
-    np.save(os.path.join(output_dir, f"/data/hidden_states.npy"), hidden_states.cpu().numpy())
+    np.save(os.path.join(output_dir, f"data/hidden_states.npy"), hidden_states.cpu().numpy())
 
 #####################################################################################################################################################
 
-def main(data_dir, model_name, output_dir):
+def main(data_dir, model_dir, output_dir):
     
     # If the output folder does not exist, create it
     if not os.path.exists(output_dir):
@@ -62,20 +62,24 @@ def main(data_dir, model_name, output_dir):
     log_message(f"Number of classes in the dataset: {num_classes}")
 
     # Load model and feature extractor from the hugging face hub
-    model = AutoModelForAudioClassification.from_pretrained(model_name, num_labels=num_classes)
-    feature_extractor = AutoFeatureExtractor.from_pretrained(model_name)
+    model = AutoModelForAudioClassification.from_pretrained(model_dir, num_labels=num_classes)
+    feature_extractor = AutoFeatureExtractor.from_pretrained(model_dir)
+    log_message(f"Loaded model from {model_dir}.")
 
     # Split dataset into train and test
     dataset = dataset.train_test_split(test_size=0.1, shuffle=True, stratify_by_column="label", seed=42)
     log_message("Split dataset into training and testing.")
 
-    # # extract features from test set
-    # extract_features(model, feature_extractor, dataset["test"], output_dir=output_dir)
-    # np.save(f"{output_dir}/data/labels.npy", dataset["test"]["label"])
+    # extract features from test set
+    log_message("Beginning feature extraction.")
+    extract_features(model, feature_extractor, dataset["test"], output_dir=output_dir)
+    np.save(f"{output_dir}/data/labels.npy", dataset["test"]["label"])
+    log_message("Finished feature extraction.")
 
     hidden_states = np.load(f"{output_dir}/data/hidden_states.npy")
     labels = np.load(f"{output_dir}/data/labels.npy")
 
+    log_message("Starting convexity analysis.")
     # perform convexity analysis
     convexity,_ = graph_convexity(hidden_states, labels, num_neighbours=10)
     # plot convexity curve
@@ -90,18 +94,21 @@ def main(data_dir, model_name, output_dir):
     num_samples = hidden_states.shape[0]
     hidden_states = torch.tensor(hidden_states)
     
+    log_message("Starting CKA analysis.")
     # perform CKA analysis
     cka_matrix = np.zeros((num_layers, num_layers))
     for i in range(num_layers):
         for j in range(num_layers):
             cka_matrix[i, j] = cka(hidden_states[:, i, :], hidden_states[:, j, :])
 
+    log_message("Starting mutual kNN.")
     # perform mutual KNN analysis
     knn_matrix = np.zeros((num_layers, num_layers))
     for i in range(num_layers):
         for j in range(num_layers):
             knn_matrix[i, j] = mutual_knn(hidden_states[:, i, :], hidden_states[:, j, :], topk=5)
-
+    
+    log_message("Starting cosine similarity analysis.")
     # Compute cosine similarity
     cosine_matrix = np.zeros((num_layers, num_layers))
     for i in range(num_layers):
@@ -131,12 +138,15 @@ def main(data_dir, model_name, output_dir):
     plt.xlabel("Layers")
     plt.ylabel("Layers")
     cosine_similarity_plot.savefig(f"{output_dir}/cosine_similarity.pdf", format="pdf")
+    
+    log_message(f"Finished!!! Plots save to {output_dir}.")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--data_dir", default="processed_data", help="Directory containing processed data batches")
-    parser.add_argument("--model_dir", default="facebook/wav2vec2-base-960h", help="Directory of the model to evaluate")
+    parser.add_argument("--model_dir", default="og_training_settings_20241117_173251/model", help="Directory of the model to evaluate")
     parser.add_argument("--output_dir", default="./analysis_results", help="Directory to save the results of the analysis")
     
     args = parser.parse_args()
-    main(args.data_dir, args.model_name, args.output_dir)
+    main(args.data_dir, args.model_dir, args.output_dir)

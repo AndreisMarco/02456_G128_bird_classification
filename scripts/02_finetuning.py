@@ -1,12 +1,14 @@
 import sys
 import os
 import re
+import json
 import argparse
 from collections import Counter
 import numpy as np
 from datetime import datetime
 
 from sklearn.utils.class_weight import compute_class_weight
+from sklearn.metrics import classification_report
 import torch
 from datasets import Dataset, concatenate_datasets
 from transformers import AutoModelForAudioClassification, AutoFeatureExtractor, TrainingArguments, Trainer
@@ -85,7 +87,7 @@ class WeightedTrainer(Trainer):
 
 #####################################################################################################################################################
 
-def main(data_dir, model_name, output_dir):
+def main(data_dir, mapping_json, model_dir, output_dir):
     
     # If the output folder does not exist, create it
     if not os.path.exists(output_dir):
@@ -124,8 +126,8 @@ def main(data_dir, model_name, output_dir):
     log_message(f"Number of classes in the dataset: {num_classes}")
 
     # Load model and feature extractor from the hugging face hub
-    model = AutoModelForAudioClassification.from_pretrained(model_name, num_labels=num_classes)
-    feature_extractor = AutoFeatureExtractor.from_pretrained(model_name)
+    model = AutoModelForAudioClassification.from_pretrained(model_dir, num_labels=num_classes)
+    feature_extractor = AutoFeatureExtractor.from_pretrained(model_dir)
     
     # Preprocess all the examples with the feature extractor
     def preprocess_function(example):
@@ -135,7 +137,7 @@ def main(data_dir, model_name, output_dir):
     log_message("Preprocessed dataset with feature extractor.")
 
     # Split dataset into train and test
-    dataset = dataset.train_test_split(test_size=0.5, shuffle=True, stratify_by_column="label", seed=42)
+    dataset = dataset.train_test_split(test_size=0.1, shuffle=True, stratify_by_column="label", seed=42)
     log_message("Split dataset into training and testing.")
 
     # Compute class weights and store in a dict
@@ -171,14 +173,14 @@ def main(data_dir, model_name, output_dir):
         learning_rate=3e-6,  
         per_device_train_batch_size=4,
         per_device_eval_batch_size=4,
-        num_train_epochs=10,
+        num_train_epochs=30,
         warmup_steps=50,  
         weight_decay=0.02,
         gradient_checkpointing=True,
 
         eval_strategy="epoch",  
         logging_dir=logs_dir,
-        logging_steps=50,
+        logging_steps=500,
         logging_first_step=True,
         
         save_strategy="epoch",
@@ -209,11 +211,27 @@ def main(data_dir, model_name, output_dir):
     trainer.save_model(f"{output_dir}/model/")
     log_message(f"Model saved to {output_dir}.")
 
+    outputs = trainer.predict(dataset['test'])
+    y_true = outputs.label_ids
+    y_pred = outputs.predictions.argmax(1)
+
+    # Load label2id and viceversa dictionaries
+    with open(mapping_json, "r") as json_file:
+        mappings = json.load(json_file)
+
+    label2id = mappings['label2id']
+    del mappings
+
+    class_labels = label2id.keys()
+
+    report = classification_report(y_true, y_pred, target_names=class_labels, digits=4)
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--data_dir", default="processed_data", help="Directory containing processed data batches")
+    parser.add_argument("--mapping_json", default="processed_data/label_mappings.json", help="File containing the mapping from label2id and viceversa ")
     parser.add_argument("--model_name", default="facebook/wav2vec2-base-960h", help="Pre-trained model to fine-tune")
     parser.add_argument("--output_dir", default="./runs", help="Directory to save trained model")
     
     args = parser.parse_args()
-    main(args.data_dir, args.model_name, args.output_dir)
+    main(args.data_dir, args.mapping_json, args.model_name, args.output_dir)

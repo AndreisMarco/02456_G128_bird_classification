@@ -50,6 +50,8 @@ def main(data_dir, model_dir, output_dir):
     
     # If the output folder does not exist, create it
     if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    if not os.path.exists(f"{output_dir}/data"):
         os.makedirs(f"{output_dir}/data")
 
     # Load dataset by merging the batches
@@ -70,18 +72,18 @@ def main(data_dir, model_dir, output_dir):
     dataset = dataset.train_test_split(test_size=0.1, shuffle=True, stratify_by_column="label", seed=42)
     log_message("Split dataset into training and testing.")
 
-    # extract features from test set
-    log_message("Beginning feature extraction.")
-    extract_features(model, feature_extractor, dataset["test"], output_dir=output_dir)
-    np.save(f"{output_dir}/data/labels.npy", dataset["test"]["label"])
-    log_message("Finished feature extraction.")
+    # # extract features from test set
+    # log_message("Beginning feature extraction.")
+    # extract_features(model, feature_extractor, dataset["test"], output_dir=output_dir)
+    # np.save(f"{output_dir}/data/labels.npy", dataset["test"]["label"])
+    # log_message("Finished feature extraction.")
 
     hidden_states = np.load(f"{output_dir}/data/hidden_states.npy")
     labels = np.load(f"{output_dir}/data/labels.npy")
 
     log_message("Starting convexity analysis.")
     # perform convexity analysis
-    convexity,_ = graph_convexity(hidden_states, labels, num_neighbours=10)
+    convexity,_ = graph_convexity(hidden_states, labels, num_neighbours=15)
     # plot convexity curve
     convexity_plot = plt.figure(figsize=(10, 6))
     plt.plot([x[0] for x in convexity])
@@ -106,7 +108,7 @@ def main(data_dir, model_dir, output_dir):
     knn_matrix = np.zeros((num_layers, num_layers))
     for i in range(num_layers):
         for j in range(num_layers):
-            knn_matrix[i, j] = mutual_knn(hidden_states[:, i, :], hidden_states[:, j, :], topk=5)
+            knn_matrix[i, j] = mutual_knn(hidden_states[:, i, :], hidden_states[:, j, :], topk=12)
     
     log_message("Starting cosine similarity analysis.")
     # Compute cosine similarity
@@ -139,13 +141,13 @@ def main(data_dir, model_dir, output_dir):
     plt.ylabel("Layers")
     cosine_similarity_plot.savefig(f"{output_dir}/cosine_similarity.pdf", format="pdf")
     
-    log_message(f"Finished!!! Plots save to {output_dir}.")
+    log_message(f"Finished!!! Plots saved to {output_dir}.")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--data_dir", default="processed_data", help="Directory containing processed data batches")
-    parser.add_argument("--model_dir", default="og_training_settings_20241117_173251/model", help="Directory of the model to evaluate")
+    parser.add_argument("--model_dir", default="20241119_141957/model", help="Directory of the model to evaluate")
     parser.add_argument("--output_dir", default="./analysis_results", help="Directory to save the results of the analysis")
     
     args = parser.parse_args()

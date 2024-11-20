@@ -148,7 +148,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--data_dir", default="processed_data", help="Directory containing processed data batches")
     parser.add_argument("--mapping_json", default="processed_data/label_mappings.json", help="File containing the mapping from label2id and viceversa ")
-    parser.add_argument("--model_dir", default="og_training_settings_20241117_173251/model", help="Directory of the model to evaluate")
+    parser.add_argument("--model_dir", default="20241119_141957/model", help="Directory of the model to evaluate")
     parser.add_argument("--output_dir", default="./validation_results", help="Directory to save the results of the analysis")
     
     args = parser.parse_args()

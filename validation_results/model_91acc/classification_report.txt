@@ -1,0 +1,57 @@
+Classification report:
+                            precision    recall  f1-score   support
+
+               Andean Guan     1.0000    0.9091    0.9524        33
+            Andean Tinamou     0.9130    0.8750    0.8936        24
+    Australian Brushturkey     0.8750    0.8235    0.8485        17
+          Band-tailed Guan     0.7619    0.8649    0.8101        37
+         Bartletts Tinamou     0.9565    0.9565    0.9565        92
+              Bearded Guan     0.8824    0.7895    0.8333        38
+      Black-capped Tinamou     0.7500    1.0000    0.8571        30
+ Blue-throated Piping Guan     0.5714    0.3636    0.4444        22
+         Brazilian Tinamou     0.9296    0.9565    0.9429        69
+             Brown Tinamou     0.9652    0.9328    0.9487       119
+         Brushland Tinamou     0.9565    1.0000    0.9778        22
+                Cauca Guan     0.9624    0.9481    0.9552       135
+          Chaco Chachalaca     0.9250    0.9367    0.9308        79
+Chestnut-winged Chachalaca     0.8649    0.8649    0.8649        37
+         Cinereous Tinamou     0.9867    0.9867    0.9867        75
+      Colombian Chachalaca     0.9730    0.9730    0.9730        37
+              Crested Guan     0.9375    0.9375    0.9375        48
+            Dusky Megapode     0.9231    1.0000    0.9600        36
+         Dusky-legged Guan     0.9688    0.9394    0.9538        33
+             Dwarf Tinamou     0.9333    0.5600    0.7000        25
+             Great Tinamou     0.9683    0.9385    0.9531        65
+              Grey Tinamou     0.8889    0.9655    0.9256        58
+    Grey-headed Chachalaca     1.0000    0.9474    0.9730        57
+          Highland Tinamou     0.9636    0.9636    0.9636        55
+         Little Chachalaca     0.7568    0.9032    0.8235        31
+            Little Tinamou     1.0000    0.8889    0.9412        27
+   Orange-footed Scrubfowl     0.9455    0.9369    0.9412       111
+       Pale-browed Tinamou     0.6538    0.7727    0.7083        22
+          Plain Chachalaca     0.9390    0.9390    0.9390        82
+        Red-legged Tinamou     0.8621    0.8621    0.8621        29
+        Red-winged Tinamou     0.9697    0.8205    0.8889        39
+ Rufous-bellied Chachalaca     0.9735    0.9322    0.9524       118
+  Rufous-headed Chachalaca     0.9091    0.7143    0.8000        28
+  Rufous-vented Chachalaca     0.8200    0.9111    0.8632        45
+       Rusty-margined Guan     1.0000    0.8824    0.9375        34
+    Slaty-breasted Tinamou     0.9062    0.8286    0.8657        35
+      Small-billed Tinamou     0.7407    0.7407    0.7407        27
+          Solitary Tinamou     0.6774    0.7500    0.7119        28
+       Speckled Chachalaca     0.9492    0.9655    0.9573        58
+                Spixs Guan     0.8182    0.8438    0.8308        32
+           Spotted Nothura     0.6957    0.9143    0.7901        35
+           Tataupa Tinamou     0.7941    0.9310    0.8571        29
+    Tawny-breasted Tinamou     0.9333    0.9655    0.9492        58
+           Thicket Tinamou     0.9773    0.9663    0.9718        89
+         Undulated Tinamou     0.9121    0.9881    0.9486        84
+        Variegated Tinamou     0.6364    0.7368    0.6829        19
+   West Mexican Chachalaca     0.9167    0.9483    0.9322        58
+     White-bellied Nothura     0.9048    0.8261    0.8636        23
+    White-throated Tinamou     1.0000    0.2143    0.3529        14
+     Yellow-legged Tinamou     0.9286    1.0000    0.9630        52
+
+                  accuracy                         0.9118      2450
+                 macro avg     0.8895    0.8723    0.8724      2450
+              weighted avg     0.9159    0.9118    0.9103      2450

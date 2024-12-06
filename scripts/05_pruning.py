@@ -52,7 +52,7 @@ def validate_model(model, feature_extractor, dataset, output_dir):
     f1 = f1_score(y_true, y_pred, average='macro')
     return accuracy, f1
 
-def main(data_dir, mapping_json, OG_model_dir, output_dir, pruning_mode):
+def main(data_dir, OG_model_dir, output_dir):
 
     # Redirect all output to a log file (easier to keep track)
     log_file = open(f'pruning_results.txt', 'w')
@@ -75,39 +75,51 @@ def main(data_dir, mapping_json, OG_model_dir, output_dir, pruning_mode):
     n_of_layers = len(model.wav2vec2.encoder.layers) 
     prunable_layers = list(range(1,n_of_layers)) 
 
-    if pruning_mode == "bf":
-        for pruning_method in ["forward", "backward"]:
-            log_message(f"\nPruning_method: {pruning_method}")
-            print(f"{'Layers':<35} {'Accuracy':<10} {'F1 Score':<10}")
-            print("-" * 55)
+    for pruning_method in ["forward", "backward"]:
+        log_message(f"\nPruning_method: {pruning_method}")
+        print(f"{'Layers':<35} {'Accuracy':<10} {'F1 Score':<10} {'n_parameters':<10}")
+        print("-" * 75)
 
-            for i in range(1, n_of_layers-1):
-                if pruning_method == "forward":
-                    keep = [0] + prunable_layers[i:]
-                else:
-                    keep = [0] + prunable_layers[:-i]
-                pruned_model = prune_model(model, keep) 
-                acc, f1 = validate_model(pruned_model,feature_extractor, dataset["test"], output_dir)
-                print(f"{str(keep):<35} {acc:<10.3f} {f1:<10.5f}")
-    
-    elif pruning_mode == "s":
-        print(f"{'Layers':<35} {'Accuracy':<10} {'F1 Score':<10}")
-        for layer in prunable_layers:
-            keep = [0] + prunable_layers
-            keep.remove(layer)
+        for i in range(1, n_of_layers-1):
+            if pruning_method == "forward":
+                keep = [0] + prunable_layers[i:]
+            else:
+                keep = [0] + prunable_layers[:-i]
             pruned_model = prune_model(model, keep) 
+            n_parameters = pruned_model.num_parameters(only_trainable=True) / 1e6
             acc, f1 = validate_model(pruned_model,feature_extractor, dataset["test"], output_dir)
-            print(f"{str(keep):<35} {acc:<10.3f} {f1:<10.5f}")
+            print(f"{str(keep):<35} {acc:<10.5f} {f1:<10.5f} {n_parameters:<10.5f}")
+
+    middle = prunable_layers[len(prunable_layers) // 2]
+    log_message(f"\nPruning_method: middle")
+    print(f"{'Layers':<35} {'Accuracy':<10} {'F1 Score':<10} {'n_parameters':<10}")
+    print("-" * 75)
+    for i in range(1, len(prunable_layers) // 2):
+        keep = [0] + deepcopy(prunable_layers)
+        to_remove = list(range(middle - i, middle + 1 + i)) 
+        for layer in to_remove: keep.remove(layer)
+        pruned_model = prune_model(model, keep)
+        n_parameters = pruned_model.num_parameters(only_trainable=True) / 1e6
+        acc, f1 = validate_model(pruned_model,feature_extractor, dataset["test"], output_dir)
+        print(f"{str(keep):<35} {acc:<10.5f} {f1:<10.5f} {n_parameters:<10.5f}")
+
+    log_message(f"\nPruning_method: single")
+    print(f"{'Layers':<35} {'Accuracy':<10} {'F1 Score':<10}")
+    for layer in prunable_layers:
+        keep = [0] + prunable_layers
+        keep.remove(layer)
+        pruned_model = prune_model(model, keep) 
+        n_parameters = pruned_model.num_parameters(only_trainable=True) / 1e6
+        acc, f1 = validate_model(pruned_model,feature_extractor, dataset["test"], output_dir)
+        print(f"{str(keep):<35} {acc:<10.3f} {f1:<10.5f} {n_parameters:<10.5f}")
     
     log_message("FINISHED!!!")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--data_dir", default="processed_data", help="Directory containing processed data batches")
-    parser.add_argument("--mapping_json", default="processed_data/label_mappings.json", help="File containing the mapping from label2id and viceversa")
     parser.add_argument("--OG_model_dir", default="20241119_141957/model", help="Directory of the model to prune")
     parser.add_argument("--output_dir", default="./pruning", help="Directory to save the results")
-    parser.add_argument("--pruning_mode", default="s", help="Method to be used for pruning 'bf' for forward and backward, 's' for single")
-    
+
     args = parser.parse_args()
-    main(args.data_dir, args.mapping_json, args.OG_model_dir, args.output_dir, args.pruning_mode)
+    main(args.data_dir, args.OG_model_dir, args.output_dir)

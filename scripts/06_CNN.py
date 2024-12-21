@@ -227,24 +227,3 @@ print(f'Final validation loss: {test_loss:.4f}, Accuracy: {test_accuracy:.4f}, F
 final_model_path =  os.path.join(save_dir, f"final_model.pth")
 torch.save(cnn.state_dict(), final_model_path)
 print(f"Final model saved to {final_model_path}")
-
-# plots of loss and accuracy of training and validation data
-plt.figure(figsize=(12, 6))
-
-plt.subplot(1, 2, 1)
-plt.plot(train_iter, train_losses, label='Train Loss')
-plt.plot(test_iter, test_losses, label='Test Loss')
-plt.xlabel('Iteration')
-plt.ylabel('Loss')
-plt.legend()
-
-plt.subplot(1, 2, 2)
-plt.plot(train_iter, train_accs, label='Train Accuracy')
-plt.plot(test_iter, test_accs, label='Test Accuracy')
-plt.xlabel('Iteration')
-plt.ylabel('Accuracy')
-plt.legend()
-
-plt.suptitle('Training and Validation Loss and Accuracy')
-
-plt.savefig('CNN_performance.png')

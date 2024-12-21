@@ -12,5 +12,5 @@ In terms of execution the project was divided into:
 
 All the computation was carried out using the HPC Tesla A100 queue (gpua100). 
 
-As can be seen the project makes intense use of many scripts that where run multiple times for testing and evalutation of many of models, with the main results being the comparison of the performance of these models which are summarized in the validation_results folder. For this reason we could not find a suitable way of creating a notebook capable of summarizing the results of the project.
+As can be seen the project makes intense use of many scripts that where run multiple times for testing and evalutation of many different models (done trough argument parsing different paths in the python files), with the main results being the comparison of the performance of these models which are summarized in the validation_results folder. For this reason we could not find a suitable way of creating a notebook capable of summarizing the results of the project.
 

@@ -7,7 +7,7 @@
 In terms of execution the project was divided into:
 - data processing, which is computationally intensive and needed to be done in batches to avoid problems memory allocation using pyarrow (01_data_processing.py).
 - convexity analysis of the base model, which lead to us to prune the base model (using 07_manual_pruning.py 12 different version from just the feature extractor to the full model), perform the finetuning (01_finetuning.py) and the validation (03_model_validation.py).
-- finetuning of the base wav2vec (01_finetuning.py) and similarity analysis, the results of which guided the process of post-training pruning (pruning was done both with the 05_pruning.py scripts, which also performs validation, and then with the 07_manual_pruning.py script, which produced models that were tested with the 03_model_validation.py script).
+- finetuning of the base wav2vec (01_finetuning.py) and similarity analysis, the results of which can be found in the analysis_results folder and guided the process of post-training pruning (pruning was done both with the 05_pruning.py scripts, which also performs validation, and then with the 07_manual_pruning.py script, which produced models that were tested with the 03_model_validation.py script).
 - training and testing of a CNN.
 
 All the computation was carried out using the HPC Tesla A100 queue (gpua100). 

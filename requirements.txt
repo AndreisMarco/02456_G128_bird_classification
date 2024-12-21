@@ -1,20 +1,14 @@
-# Basic packages
-numpy==1.26.4
+numpy==2.1.3
 pandas==2.2.3
+matplotlib==3.9.2
+seaborn==0.13.2
+
+scikit-learn==1.5.2
+transformers==4.46.2
+
+datasets==3.1.0
+evaluate==0.4.3
 
 --index-url https://download.pytorch.org/whl/cu121
 torch
 torchaudio
-
-# ML packages
-datasets==3.1.0 
-scikit-learn==1.5.2
-transformers==4.46.2
-accelerate==1.1.1
-evaluate==0.4.3
-
-# So many strange problems with installing the packages from this file
-# Maybe I simply do not notice the evident problem
-# Trying to install from this file lead to "ERROR: Could not find a version that satisfies the requirement package_name==requested_version"
-# Installing the same via "python3 -m pip install package_name==requested_version" lead to the same error
-# But after removing the version the latest version (usually the requested one) was installed without any problem... yep it do be like that sometimes

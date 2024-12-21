@@ -1,75 +1,20 @@
 import sys
 import os
-import re
-import json
 import argparse
-from collections import Counter
 import numpy as np
 from datetime import datetime
 
+from utils import log_message, load_and_merge_batches, select_n_samples
+
 from sklearn.utils.class_weight import compute_class_weight
-from sklearn.metrics import classification_report
 import torch
-from datasets import Dataset, concatenate_datasets
 from transformers import AutoModelForAudioClassification, AutoFeatureExtractor, TrainingArguments, Trainer
 import evaluate
 
-#####################################################################################################################################################
-
-def log_message(message):
-    '''
-    Home-made simple function to add the times to prints
-    '''
-    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    print(f"{current_time} - {message}")
-
-def sort_numerically(batch_paths):
-    '''
-    Necessary for standardizing the batches import order
-    '''
-    def extract_number(batch_dir):
-        match = re.search(r'(\d+)', batch_dir)
-        return int(match.group(1)) if match else 0
-    sorted_paths = sorted(batch_paths, key=extract_number)
-    return sorted_paths
-
-def load_and_merge_batches(batch_folder):
-    '''
-    Loads all .arrow files and merges them in a single dataset
-    '''
-    log_message(f"Loading and merging batches from folder: {batch_folder}")
-    batch_paths = [f for f in os.listdir(batch_folder) if os.path.isdir(os.path.join(batch_folder, f))]
-    batch_paths = sort_numerically(batch_paths)
-    datasets_list = []
-
-    for batch_dir in batch_paths:
-        batch_path = os.path.join(batch_folder, batch_dir)
-        dataset = Dataset.load_from_disk(batch_path)
-        datasets_list.append(dataset)
-    
-    merged_dataset = concatenate_datasets(datasets_list)
-    log_message(f"Merged {len(datasets_list)} batches into a single dataset.")
-    return merged_dataset
-
-def select_n_samples(dataset, n):
-    '''
-    Function to subset dataset by taking n samples for each unique class 
-    '''
-    log_message(f"Selecting {n} samples per class from the dataset.")
-    selected = []
-    counts = Counter(dataset['label'])
-    current = 0
-    for i in range(len(counts.keys())):
-        for j in range(current, current+n):
-            selected.append(j)
-        current_label = dataset[current]["label"] 
-        current += counts[current_label]
-    return dataset.select(selected)
-
 class WeightedTrainer(Trainer):
     '''
-    modified Trainer class that accepts a vector of weights to compute
-    CrossEntropyLoss for an imbalanced dataset
+    Modified Trainer class that uses a vector of weights to compute
+    CrossEntropyLoss for the imbalanced dataset
     '''
     def __init__(self, class_weights, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -80,14 +25,13 @@ class WeightedTrainer(Trainer):
         outputs = model(**inputs)
         logits = outputs.logits
 
+        # Calculate loss using class weitghs 
         loss_fct = torch.nn.CrossEntropyLoss(weight=self.class_weights)
         loss = loss_fct(logits.view(-1, model.config.num_labels), labels.view(-1))
 
         return (loss, outputs) if return_outputs else loss
 
-#####################################################################################################################################################
-
-def main(data_dir, mapping_json, model_dir, output_dir):
+def main(data_dir, base_model, output_dir):
     
     # If the output folder does not exist, create it
     if not os.path.exists(output_dir):
@@ -104,19 +48,21 @@ def main(data_dir, mapping_json, model_dir, output_dir):
     log_file = open(f'{output_dir}/log.txt', 'w')
     sys.stdout = log_file
 
-    # Check if the GPU is available
+    # Check if the GPU is available 
     gpu_available = torch.cuda.is_available()
     log_message(f"Is GPU available? {gpu_available}")
-
+    # Log GPU availability
     if gpu_available:
         current_device = torch.cuda.current_device()
         log_message(f"Current GPU Device: {torch.cuda.get_device_name(current_device)}")
     else:
         log_message("Using CPU instead of GPU.")
-    # Use GPU if available
-    device = torch.device('cuda' if gpu_available else 'cpu')
 
+    # If available work on GPU 
+    device = torch.device('cuda' if gpu_available else 'cpu')
+    
     # Load dataset by merging the batches
+    log_message(f"Dataset source: {data_dir}")
     dataset = load_and_merge_batches(data_dir)
 
     # FOR TESTING!!! Work only on a balanced subset of the dataset
@@ -126,8 +72,9 @@ def main(data_dir, mapping_json, model_dir, output_dir):
     log_message(f"Number of classes in the dataset: {num_classes}")
 
     # Load model and feature extractor from the hugging face hub
-    model = AutoModelForAudioClassification.from_pretrained(model_dir, num_labels=num_classes)
-    feature_extractor = AutoFeatureExtractor.from_pretrained(model_dir)
+    model = AutoModelForAudioClassification.from_pretrained(base_model, num_labels=num_classes)
+    feature_extractor = AutoFeatureExtractor.from_pretrained(base_model)
+    log_message(f"Base model source: {base_model}")
     
     # Preprocess all the examples with the feature extractor
     def preprocess_function(example):
@@ -136,7 +83,7 @@ def main(data_dir, mapping_json, model_dir, output_dir):
     dataset = dataset.map(preprocess_function, remove_columns="audio", batched=True, batch_size=32)
     log_message("Preprocessed dataset with feature extractor.")
 
-    # Split dataset into train and test
+    # Split dataset into train and test (set seed for reproducibility)
     dataset = dataset.train_test_split(test_size=0.1, shuffle=True, stratify_by_column="label", seed=42)
     log_message("Split dataset into training and testing.")
 
@@ -211,27 +158,11 @@ def main(data_dir, mapping_json, model_dir, output_dir):
     trainer.save_model(f"{output_dir}/model/")
     log_message(f"Model saved to {output_dir}.")
 
-    outputs = trainer.predict(dataset['test'])
-    y_true = outputs.label_ids
-    y_pred = outputs.predictions.argmax(1)
-
-    # Load label2id and viceversa dictionaries
-    with open(mapping_json, "r") as json_file:
-        mappings = json.load(json_file)
-
-    label2id = mappings['label2id']
-    del mappings
-
-    class_labels = label2id.keys()
-
-    report = classification_report(y_true, y_pred, target_names=class_labels, digits=4)
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--data_dir", default="processed_data", help="Directory containing processed data batches")
-    parser.add_argument("--mapping_json", default="processed_data/label_mappings.json", help="File containing the mapping from label2id and viceversa ")
-    parser.add_argument("--model_name", default="facebook/wav2vec2-base-960h", help="Pre-trained model to fine-tune")
+    parser.add_argument("--base_model", default="facebook/wav2vec2-base-960h", help="Pre-trained model to fine-tune")
     parser.add_argument("--output_dir", default="./runs", help="Directory to save trained model")
     
     args = parser.parse_args()
-    main(args.data_dir, args.mapping_json, args.model_name, args.output_dir)
+    main(args.data_dir, args.base_model, args.output_dir)

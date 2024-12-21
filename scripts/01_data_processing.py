@@ -1,6 +1,6 @@
 '''
 This file is an adaptation of the code present into the notebook "bird-species-by-sound-detection".
-Specifically the first part which processes the audio data and puts it into an hugging face dataset to be feed to the fine-tuned LAM. 
+Specifically the first part which processes the audio data and puts it into an hugging face dataset to be feed to the LAM. 
 '''
 
 # Import basic libraries
